@@ -1,1 +1,73 @@
+esphome:
+  name: c3-room
+  friendly_name: c3-room
 
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: ""
+
+ota:
+  - platform: esphome
+    password: ""
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  manual_ip:
+    static_ip: 192.168.1.106
+    gateway: 192.168.1.1
+    subnet: 255.255.255.0
+
+i2c:
+  sda: GPIO8
+  scl: GPIO9
+  scan: true
+  id: bus_a
+
+sensor:
+  - platform: aht10
+    variant: AHT20
+    address: 0x38
+    temperature:
+      name: "Room Temperature"
+      id: room_temp
+    humidity:
+      name: "Room Humidity"
+      id: room_hum
+    update_interval: 120s
+    
+  - platform: ens160_i2c
+    address: 0x53
+    eco2:
+      name: "ENS160 eCO2"
+    tvoc:
+      name: "ENS160 TVOC"
+    aqi:
+      name: "ENS160 AQI"
+      id: air_aqi
+    compensation:
+      temperature: room_temp
+      humidity: room_hum
+    update_interval: 120s
+
+text_sensor:
+  - platform: template
+    name: "ENS160 Air Quality Rating"
+    lambda: |-
+      switch ( (int) (id(air_aqi).state) ) {
+        case 1: return {"佳"};
+        case 2: return {"好"};
+        case 3: return {"中等"};
+        case 4: return {"差"};
+        case 5: return {"極差"};
+        default: return {"不可用"};
+      }
